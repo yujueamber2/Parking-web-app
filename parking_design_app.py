@@ -309,6 +309,28 @@ def main():
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
+
+        .cost-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .section-header {
+            background: linear-gradient(145deg, #AF52DE80, #9F40CE80);
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            margin: 10px 0;
+        }
+        .result-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin: 10px 0;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -439,7 +461,7 @@ def main():
                 st.write(f"🏗️ **Total Building Height:** {total_height:.1f} ft")
                 st.write(f"📏 **Total Floor Area:** {total_area:,.0f} sq ft")
                 st.write(f"🚗 **Estimated Capacity:** {approx_spaces:.0f} spaces")
-                st.write(f"🛣️ **Circulation Type:** {'Double-loaded' if span_type == 'Long Span (60\' typical)' else 'Single-loaded'}")
+                st.write("🛣️ **Circulation Type:** " + ("Double-loaded" if span_type == "Long Span (60' typical)" else "Single-loaded"))
             
             # Code Requirements Summary
             st.subheader("Evaluating Code Requirements")
@@ -500,136 +522,417 @@ def main():
                     st.rerun()
 
         with tab5:
-            st.markdown('<div class="purple-header"><h2>Cost Estimation Calculator</h2></div>', unsafe_allow_html=True)
-
-            # Reference Information
-            st.subheader("Cost Reference Sources")
-            with st.expander("📚 Reference Projects & Sources", expanded=True):
-                st.markdown("""
-                | Project Name | Location | Year | Cost/Space | Type |
-                |--------------|----------|------|------------|------|
-                | Santa Monica Place | Santa Monica, CA | 2021 | $65,000 | Underground |
-                | Pike & Rose | Bethesda, MD | 2022 | $35,000 | Above Ground |
-                | Legacy West | Plano, TX | 2021 | $28,000 | Above Ground |
-                """)
-                st.info("Note: Costs adjusted for inflation to current year")
-
-            # Basic Parameters
-            total_spaces = parking_spaces if 'parking_spaces' in locals() else 100
-            num_levels = num_levels if 'num_levels' in locals() else 3
-
-            # Detailed Cost Breakdown Sections
-            st.subheader("1. Structural System")
-            with st.expander("Structural Components", expanded=True):
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.markdown("##### Material")
-                    concrete_cost = st.number_input("Concrete ($/CY)", value=180.0, step=5.0, help="RSMeans 2023: $165-195/CY")
-                    rebar_cost = st.number_input("Rebar ($/Ton)", value=1800.0, step=50.0, help="RSMeans 2023: $1700-1900/Ton")
-                with col2:
-                    st.markdown("##### Labor")
-                    labor_rate = st.number_input("Labor Rate ($/Hr)", value=85.0, step=5.0, help="Union rates vary by location")
-                    productivity = st.number_input("Productivity (SF/Day/Crew)", value=2000.0, step=100.0)
-                with col3:
-                    st.markdown("##### Equipment")
-                    crane_cost = st.number_input("Crane ($/Month)", value=15000.0, step=500.0)
-                    forms_cost = st.number_input("Formwork ($/SF)", value=12.0, step=0.5)
-
-            st.subheader("2. Architectural Elements")
-            with st.expander("Architectural Components", expanded=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    facade_types = {
-                        "Precast Panels": 45.0,
-                        "Metal Screen": 35.0,
-                        "Glass Curtainwall": 85.0,
-                        "Basic Concrete": 25.0
-                    }
-                    facade_type = st.selectbox("Facade System", list(facade_types.keys()))
-                    facade_cost = st.number_input("Facade Cost ($/SF)", value=facade_types[facade_type], help="Based on RSMeans 2023")
-                with col2:
-                    st.markdown("##### Vertical Transportation")
-                    elevator_cost = st.number_input("Elevator ($/unit)", value=175000.0, step=5000.0, help="Includes installation")
-                    stair_cost = st.number_input("Stairwell ($/flight)", value=45000.0, step=1000.0)
-
-            st.subheader("3. MEP Systems")
-            with st.expander("MEP Breakdown", expanded=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown("##### Mechanical & Plumbing")
-                    ventilation_cost = st.number_input("Ventilation ($/SF)", value=12.0, step=0.5, help="Includes CO monitoring")
-                    drainage_cost = st.number_input("Drainage System ($/SF)", value=8.0, step=0.5)
-                with col2:
-                    st.markdown("##### Electrical")
-                    lighting_cost = st.number_input("Lighting ($/SF)", value=9.5, step=0.5, help="LED fixtures with controls")
-                    power_cost = st.number_input("Power Distribution ($/SF)", value=7.5, step=0.5)
-
-            st.subheader("4. Special Systems & Technology")
-            with st.expander("Technology Integration", expanded=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown("##### Parking Systems")
-                    revenue_control = st.number_input("Revenue Control System ($/entry-exit)", value=35000.0, step=1000.0)
-                    guidance_system = st.number_input("Parking Guidance ($/space)", value=450.0, step=50.0)
-                with col2:
-                    st.markdown("##### EV Charging")
-                    ev_percentage = st.slider("EV Ready Spaces (%)", 5, 30, 10)
-                    ev_cost = st.number_input("EV Charger Cost ($/unit)", value=7500.0, step=100.0)
-
-            # Cost Calculations
-            st.subheader("Total Cost Analysis")
-            with st.expander("Cost Summary", expanded=True):
-                # Calculate areas and quantities
-                avg_sf_per_space = 350
-                total_sf = total_spaces * avg_sf_per_space
-                perimeter_sf = (total_sf/num_levels)**0.5 * 4 * num_levels  # Approximate perimeter
-                num_ev_stations = int(total_spaces * ev_percentage / 100)
-
-                # Calculate component costs
-                structural_cost = (concrete_cost * total_sf * 0.15) + (rebar_cost * total_sf * 0.004)  # Approximate quantities
-                facade_total = facade_cost * perimeter_sf
-                mep_total = (ventilation_cost + drainage_cost + lighting_cost + power_cost) * total_sf
-                systems_total = (revenue_control * 2) + (guidance_system * total_spaces) + (ev_cost * num_ev_stations)
-
-                total_cost = structural_cost + facade_total + mep_total + systems_total
-                cost_per_space = total_cost / total_spaces
-
-                # Display metrics
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Total Project Cost", f"${total_cost:,.2f}")
-                    st.metric("Cost per Space", f"${cost_per_space:,.2f}")
-                with col2:
-                    st.metric("Cost per Square Foot", f"${(total_cost/total_sf):,.2f}")
-                    st.metric("Total Area", f"{total_sf:,.0f} SF")
-
-                # Cost breakdown chart
-                cost_data = {
-                    'Component': ['Structural', 'Facade', 'MEP', 'Systems'],
-                    'Cost': [structural_cost, facade_total, mep_total, systems_total]
+            # Main container with custom padding
+            st.markdown("""
+                <style>
+                .cost-container {
+                    background-color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    margin-bottom: 20px;
                 }
-                df_costs = pd.DataFrame(cost_data)
-                st.bar_chart(df_costs.set_index('Component'))
+                .section-header {
+                    background: linear-gradient(145deg, #AF52DE80, #9F40CE80);
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    margin: 10px 0;
+                }
+                .result-box {
+                    background-color: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 8px;
+                    border: 1px solid #e9ecef;
+                    margin: 10px 0;
+                }
+                </style>
+            """, unsafe_allow_html=True)
 
-                # Notes and Assumptions
-                st.markdown("#### Notes & Assumptions")
-                st.markdown("""
-                - Costs based on Q1 2023 data
-                - Labor rates vary by region (±20%)
-                - Excludes land acquisition costs
-                - Assumes typical soil conditions
-                - Excludes soft costs (design, permits, etc.)
-                - Utility connections not included
-                - 20% contingency recommended
-                """)
+            # Project Data Section
+            st.markdown('<div class="section-header"><h3>Project Data</h3></div>', unsafe_allow_html=True)
+            
+            with st.container():
+                # Building Parameters
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("##### 🏗️ Building Configuration")
+                    total_levels = st.selectbox("Total Levels:", range(1, 11), 2)
+                    below_grade = st.selectbox("Levels Below Grade:", ["None"] + list(range(1, total_levels + 1)))
+                    total_stalls = st.number_input("Number of Parking Stalls:", min_value=100, value=500)
+                    efficiency = st.number_input("Efficiency (SF/Stall):", min_value=300, value=320,
+                                               help="Typical range: 300-400 SF per stall")
+                
+                with col2:
+                    st.markdown("##### 🔧 Structural Systems")
+                    structural_system = st.selectbox("Structural System:", ["Long Span", "Short Span"])
+                    lateral_system = st.selectbox("Lateral System:", ["Shear Walls", "Moment Frame", "Dual System"])
+                    foundation_type = st.selectbox("Foundation Type:", ["Shallow Foundation", "Deep Foundation"])
+                    facade_finish = st.slider("Facade Quality (1-10):", 1, 10, 5,
+                                            help="1=Basic, 5=Standard, 10=Premium")
 
-            # Export option
-            st.download_button(
-                label="Download Detailed Cost Estimate",
-                data=df_costs.to_csv(),
-                file_name="parking_structure_cost_estimate.csv",
-                mime="text/csv"
-            )
+            # Quick Summary Box
+            st.markdown('<div class="result-box">', unsafe_allow_html=True)
+            quick_stats_col1, quick_stats_col2, quick_stats_col3 = st.columns(3)
+            with quick_stats_col1:
+                st.metric("Total Area", f"{total_stalls * efficiency:,} SF")
+            with quick_stats_col2:
+                st.metric("Levels", f"{total_levels} ({below_grade if below_grade != 'None' else '0'} below)")
+            with quick_stats_col3:
+                st.metric("Stalls per Level", f"{total_stalls // total_levels:,}")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Cost Calculation Section
+            st.markdown('<div class="section-header"><h3>Cost Calculations</h3></div>', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                st.markdown("##### 💰 Additional Cost Factors (Optional)")
+                
+                # Optional cost factors with checkboxes
+                include_misc = st.checkbox("Include Misc. Project Cost", value=True,
+                                        help="Site work, utilities, etc.")
+                if include_misc:
+                    misc_cost_percent = st.number_input("Misc. Project Cost (%):", value=5.0, format="%.1f")
+                else:
+                    misc_cost_percent = 0.0
+
+                include_gc = st.checkbox("Include GC + OH&P + Insurance", value=True,
+                                      help="General Conditions, Overhead & Profit, Insurance")
+                if include_gc:
+                    gc_oh_percent = st.number_input("GC + OH&P + Insurance (%):", value=15.0, format="%.1f")
+                else:
+                    gc_oh_percent = 0.0
+
+                include_contingency = st.checkbox("Include Design Contingency", value=True,
+                                               help="Allowance for unknown design elements")
+                if include_contingency:
+                    contingency_percent = st.number_input("Design Contingency (%):", value=10.0, format="%.1f")
+                else:
+                    contingency_percent = 0.0
+
+                include_escalation = st.checkbox("Include Escalation", value=True,
+                                              help="Future cost increases")
+                if include_escalation:
+                    escalation_percent = st.number_input("Escalation (%):", value=6.0, format="%.1f")
+                else:
+                    escalation_percent = 0.0
+            
+            with col2:
+                st.markdown("##### 🏗️ Market Conditions (Optional)")
+                include_market = st.checkbox("Include Market Adjustment", value=False,
+                                          help="Apply market condition multiplier to final cost")
+                if include_market:
+                    market_condition = st.selectbox(
+                        "Current Market:",
+                        ["Aggressive", "Normal", "Impacted"],
+                        help="Affects final cost based on number of bidders"
+                    )
+
+            def calculate_base_construction_cost():
+                # Base cost factors
+                base_cost_per_sf = {
+                    "Long Span": {
+                        "Above Grade": 95.0,  # Base cost for long span above grade
+                        "Below Grade": 125.0  # Base cost for long span below grade
+                    },
+                    "Short Span": {
+                        "Above Grade": 85.0,  # Base cost for short span above grade
+                        "Below Grade": 115.0  # Base cost for long span below grade
+                    }
+                }
+
+                # Structural system multipliers
+                lateral_system_multiplier = {
+                    "Shear Walls": 1.0,
+                    "Moment Frame": 1.15,
+                    "Dual System": 1.25
+                }
+
+                # Foundation multipliers
+                foundation_multiplier = {
+                    "Shallow Foundation": 1.0,
+                    "Deep Foundation": 1.35
+                }
+
+                # Facade multipliers (1-10 scale)
+                facade_multiplier = 1.0 + (facade_finish - 5) * 0.05  # 5% adjustment per level from baseline of 5
+
+                # Calculate above and below grade areas
+                below_grade_levels = 0 if below_grade == "None" else int(below_grade)
+                above_grade_levels = total_levels - below_grade_levels
+                
+                area_per_level = total_area / total_levels
+                above_grade_area = area_per_level * above_grade_levels
+                below_grade_area = area_per_level * below_grade_levels
+
+                # Calculate base cost
+                if below_grade_levels > 0:
+                    below_cost = below_grade_area * base_cost_per_sf[structural_system]["Below Grade"]
+                    above_cost = above_grade_area * base_cost_per_sf[structural_system]["Above Grade"]
+                    base_cost = below_cost + above_cost
+                else:
+                    base_cost = total_area * base_cost_per_sf[structural_system]["Above Grade"]
+
+                # Apply multipliers
+                adjusted_cost = (base_cost * 
+                               lateral_system_multiplier[lateral_system] * 
+                               foundation_multiplier[foundation_type] * 
+                               facade_multiplier)
+
+                return adjusted_cost
+
+            def calculate_total_cost():
+                base_cost = calculate_base_construction_cost()
+                
+                # Initialize additional costs
+                misc_cost = base_cost * (misc_cost_percent / 100) if include_misc else 0
+                gc_oh_cost = base_cost * (gc_oh_percent / 100) if include_gc else 0
+                contingency_cost = base_cost * (contingency_percent / 100) if include_contingency else 0
+                escalation_cost = base_cost * (escalation_percent / 100) if include_escalation else 0
+
+                # Calculate subtotal
+                subtotal = base_cost + misc_cost + gc_oh_cost + contingency_cost + escalation_cost
+
+                # Apply market condition if selected
+                if include_market:
+                    market_multiplier = {
+                        "Aggressive": 0.95,
+                        "Normal": 1.0,
+                        "Impacted": 1.15
+                    }
+                    total = subtotal * market_multiplier[market_condition]
+                else:
+                    total = subtotal
+
+                return {
+                    "base_cost": base_cost,
+                    "misc_cost": misc_cost,
+                    "gc_oh_cost": gc_oh_cost,
+                    "contingency_cost": contingency_cost,
+                    "escalation_cost": escalation_cost,
+                    "total_cost": total,
+                    "market_adjusted": include_market,
+                    "included_factors": {
+                        "misc": include_misc,
+                        "gc": include_gc,
+                        "contingency": include_contingency,
+                        "escalation": include_escalation
+                    }
+                }
+
+            # Calculate Button
+            st.markdown("<br>", unsafe_allow_html=True)
+            col1, col2, col3 = st.columns([1,2,1])
+            with col2:
+                calculate_button = st.button("📊 Calculate Costs", type="primary", use_container_width=True)
+
+            if calculate_button:
+                costs = calculate_total_cost()
+                
+                # Results Display
+                st.markdown('<div class="result-box">', unsafe_allow_html=True)
+                
+                # Cost Breakdown
+                st.markdown("#### 📊 Cost Breakdown")
+                cost_cols = st.columns(3)
+                with cost_cols[0]:
+                    st.metric("Base Construction", f"${costs['base_cost']:,.0f}")
+                    if costs['included_factors']['misc']:
+                        st.metric("Misc. Project", f"${costs['misc_cost']:,.0f}")
+                with cost_cols[1]:
+                    if costs['included_factors']['gc']:
+                        st.metric("GC + OH&P", f"${costs['gc_oh_cost']:,.0f}")
+                    if costs['included_factors']['contingency']:
+                        st.metric("Contingency", f"${costs['contingency_cost']:,.0f}")
+                with cost_cols[2]:
+                    if costs['included_factors']['escalation']:
+                        st.metric("Escalation", f"${costs['escalation_cost']:,.0f}")
+                    if costs['market_adjusted']:
+                        st.info(f"Market Condition ({market_condition}) Applied")
+                
+                # Summary of included/excluded factors
+                st.markdown("#### 📋 Included Cost Factors:")
+                included_factors = []
+                if costs['included_factors']['misc']: included_factors.append("Misc. Project Cost")
+                if costs['included_factors']['gc']: included_factors.append("GC + OH&P")
+                if costs['included_factors']['contingency']: included_factors.append("Design Contingency")
+                if costs['included_factors']['escalation']: included_factors.append("Escalation")
+                if costs['market_adjusted']: included_factors.append(f"Market Adjustment ({market_condition})")
+                
+                if included_factors:
+                    st.write(" • " + "\n • ".join(included_factors))
+                else:
+                    st.write("Base construction cost only (no additional factors included)")
+                
+                # Final Metrics
+                st.markdown("---")
+                final_cols = st.columns(3)
+                with final_cols[0]:
+                    st.metric("Total Cost", f"${costs['total_cost']:,.0f}")
+                with final_cols[1]:
+                    st.metric("Cost/SF", f"${costs['total_cost']/total_area:,.2f}")
+                with final_cols[2]:
+                    st.metric("Cost/Stall", f"${costs['total_cost']/total_stalls:,.0f}")
+                
+                if not costs['market_adjusted']:
+                    st.info("💡 Market conditions not included in this calculation. Enable 'Include Market Adjustment' for market-adjusted costs.")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            # Information Expanders
+            st.markdown("### 📚 Reference & Help")
+            col1, col2 = st.columns(2)
+            with col1:
+                with st.expander("📝 Detailed Cost Calculation Methods"):
+                    st.markdown("""
+                    ### Base Cost Calculation Process
+                    
+                    1. **Area Calculations**
+                       - Total Area = Number of Stalls × Efficiency
+                       - Area per Level = Total Area ÷ Number of Levels
+                       - Above/Below Grade Areas calculated separately
+                    
+                    2. **Base Cost Determination**
+                       - Long Span Above Grade: $95/SF
+                       - Long Span Below Grade: $125/SF
+                       - Short Span Above Grade: $85/SF
+                       - Short Span Below Grade: $115/SF
+                    
+                    3. **Structural System Adjustments**
+                       - Long Span: Better efficiency but higher cost
+                       - Short Span: More columns but lower cost
+                       - Below Grade: +30-40% premium for waterproofing & excavation
+                    
+                    4. **System Multipliers Applied**
+                       - Lateral System:
+                         * Shear Walls: Base cost (1.0×)
+                         * Moment Frame: +15% premium (1.15×)
+                         * Dual System: +25% premium (1.25×)
+                       
+                       - Foundation Type:
+                         * Shallow Foundation: Base cost (1.0×)
+                         * Deep Foundation: +35% premium (1.35×)
+                    
+                    5. **Facade Quality Adjustment**
+                       - Base level is 5 (standard quality)
+                       - Each point above/below 5: ±5% cost adjustment
+                       - Example: Level 8 = +15% premium (3 points × 5%)
+                    
+                    6. **Additional Costs**
+                       - Misc. Project Costs: % of base cost
+                       - GC + OH&P: % of base cost
+                       - Design Contingency: % of base cost
+                       - Escalation: % of base cost
+                    
+                    7. **Market Adjustment**
+                       - Final multiplier based on market conditions
+                    """)
+            
+            with col2:
+                with st.expander("ℹ️ Detailed Cost Factors Reference"):
+                    st.markdown("""
+                    ### System Cost Impacts
+                    
+                    **Structural Systems:**
+                    - **Long Span**
+                      * Pros: Better circulation, fewer columns
+                      * Cons: Higher structural cost
+                      * Typical efficiency: 300-340 SF/stall
+                    
+                    - **Short Span**
+                      * Pros: Lower structural cost
+                      * Cons: More columns, reduced flexibility
+                      * Typical efficiency: 330-390 SF/stall
+                    
+                    **Below Grade Construction:**
+                    - Waterproofing: +15-20%
+                    - Excavation: +10-15%
+                    - Shoring: +5-10%
+                    
+                    **Lateral System Selection:**
+                    - **Shear Walls**
+                      * Most economical
+                      * Good for seismic regions
+                      * May impact circulation
+                    
+                    - **Moment Frame**
+                      * Better openness
+                      * Higher steel content
+                      * Premium: +15%
+                    
+                    - **Dual System**
+                      * Best seismic performance
+                      * Most expensive option
+                      * Premium: +25%
+                    
+                    **Foundation Impact:**
+                    - **Shallow Foundation**
+                      * Standard spread footings
+                      * Good soil conditions
+                      * Base cost option
+                    
+                    - **Deep Foundation**
+                      * Piles or caissons
+                      * Poor soil conditions
+                      * Premium: +35%
+                    
+                    **Market Condition Factors:**
+                    - **Aggressive:** -5%
+                      * Many bidders (6+)
+                      * High competition
+                    - **Normal:** Base cost
+                      * 3-5 bidders
+                      * Typical market
+                    - **Impacted:** +15%
+                      * Limited bidders (1-2)
+                      * Difficult conditions
+                    """)
+
+                with st.expander("🎯 Calculator Usage Example"):
+                    st.markdown("""
+                    ### Example Project Calculation
+                    
+                    **Sample Project Scenario:**
+                    - 500-car garage
+                    - 4 levels (1 below grade)
+                    - Long span structure
+                    - Located in urban area
+                    
+                    **Step-by-Step Input:**
+                    1. **Project Data:**
+                       - Total Levels: 4
+                       - Below Grade: 1
+                       - Parking Stalls: 500
+                       - Efficiency: 330 SF/stall
+                    
+                    2. **Structural Choices:**
+                       - Long Span system
+                       - Shear Walls for lateral
+                       - Deep Foundation (urban site)
+                       - Facade Quality: 7 (above average)
+                    
+                    3. **Cost Factors:**
+                       - Misc. Project: 5%
+                       - GC + OH&P: 15%
+                       - Contingency: 10%
+                       - Escalation: 6%
+                       - Normal market conditions
+                    
+                    **Expected Results:**
+                    - Total Area: 165,000 SF
+                    - Base Cost: ~$17.5M
+                    - Final Cost: ~$23.8M
+                    - Cost per Space: ~$47,600
+                    
+                    **Key Considerations:**
+                    - Below grade level increases cost
+                    - Urban location affects logistics
+                    - Premium facade adds quality
+                    - Normal market provides stable pricing
+                    
+                    This example shows how different factors combine to influence the final cost estimate.
+                    """)
 
 if __name__ == "__main__":
     main() 
