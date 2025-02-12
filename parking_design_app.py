@@ -1,9 +1,10 @@
 import streamlit as st
-import pandas as pd
 import folium
 from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 import time
+import pandas as pd
+import os
 
 def create_shining_button():
     st.markdown("""
@@ -461,7 +462,8 @@ def main():
                 st.write(f"🏗️ **Total Building Height:** {total_height:.1f} ft")
                 st.write(f"📏 **Total Floor Area:** {total_area:,.0f} sq ft")
                 st.write(f"🚗 **Estimated Capacity:** {approx_spaces:.0f} spaces")
-                st.write("🛣️ **Circulation Type:** " + ("Double-loaded" if span_type == "Long Span (60' typical)" else "Single-loaded"))
+                span_type_long = 'Long Span (60\' typical)'
+                st.write(f"🛣️ **Circulation Type:** {'Double-loaded' if span_type == span_type_long else 'Single-loaded'}")
             
             # Code Requirements Summary
             st.subheader("Evaluating Code Requirements")
@@ -475,45 +477,247 @@ def main():
                     st.write("- Required fire separation between levels")
                     st.write("- Mechanical ventilation required")
             
-            # Create Options Button
-            if st.button("Create Design Options", type="primary"):
+            # Add button to generate CSV
+            if st.button("Generate Design Parameters CSV", key="gen_csv", type="primary"):
+                try:
+                    # Create dictionary of design parameters
+                    design_params = {
+                        'site_length': [site_length],
+                        'site_width': [site_width],
+                        'span_type': [span_type],
+                        'num_levels': [num_levels],
+                        'first_floor_height': [first_floor_height],
+                        'typical_floor_height': [typical_floor_height],
+                        'num_ramps': [num_ramps],
+                        'total_height': [total_height],
+                        'total_area': [total_area],
+                        'approx_spaces': [approx_spaces]
+                    }
+                    
+                    # Convert dictionary to DataFrame
+                    df = pd.DataFrame(design_params)
+                    
+                    # Save to CSV
+                    csv_filename = "design_parameters.csv"
+                    df.to_csv(csv_filename, index=False)
+                    
+                    # Show success message with download button
+                    st.success(f"Design parameters saved to {csv_filename}")
+                    
+                    # Create download button
+                    with open(csv_filename, 'rb') as file:
+                        st.download_button(
+                            label="Download Parameters CSV",
+                            data=file,
+                            file_name=csv_filename,
+                            mime='text/csv',
+                            key="download_csv"
+                        )
+                except Exception as e:
+                    st.error(f"Error generating CSV: {str(e)}")
+            
+            # Navigation button
+            if st.button("Next: 3D Model Options →", key="nav_to_model", type="primary"):
                 st.session_state.active_tab = "3D Model Options"
                 st.rerun()
-            
-            st.markdown("---")
-            col1, col2, col3 = st.columns([1,2,1])
-            with col2:
-                if st.button("Next: 3D Model Options →", key="nav_to_model", type="primary"):
-                    st.session_state.active_tab = "3D Model Options"
-                    st.rerun()
         
         with tab4:
             st.markdown('<div class="orange-header"><h2>3D Model Options</h2></div>', unsafe_allow_html=True)
             
-            # ShapeDiver iframe embedding
-            ticket = "ec17d00663f923ef03a8fc938cff333ad5101843f0b971a6068bc93faaf04b8f87a65af5e07675c2b6fb7ed75f749e8a1313cbc865a37846d39238739f0688eaea32d860f005f82ef635ed1a4526abcf87757667ac3077aa245be99b1cc1f21e5109b89138f42b-65c939a872a7798562baa8fe9487e517"
-            shapediver_url = f"https://viewer.shapediver.com/v3/3.10.1/latest/index.html?ticket={ticket}"
-            html_code = f'''
-                <iframe 
-                    width="100%" 
-                    height="600" 
-                    src="{shapediver_url}"
-                    referrerpolicy="origin" 
-                    allow="fullscreen"
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                    style="overflow: hidden; border-width: 0;">
-                    <p>Your browser does not support iframes.</p>
-                </iframe>
-            '''
-            st.components.v1.html(html_code, height=600)
+            # Add custom CSS for parameter styling
+            st.markdown("""
+                <style>
+                .param-container {
+                    background-color: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 8px;
+                    border: 1px solid #e9ecef;
+                    margin: 10px 0;
+                }
+                .param-header {
+                    color: #6c757d;
+                    font-size: 0.9em;
+                    font-weight: 600;
+                    margin-bottom: 10px;
+                }
+                .param-value {
+                    color: #212529;
+                    font-size: 0.85em;
+                    font-family: monospace;
+                }
+                .metric-container {
+                    font-size: 0.85em;
+                }
+                .metric-container .st-emotion-cache-1xarl3l {
+                    font-size: 0.9em;
+                }
+                .metric-container .st-emotion-cache-183lzff {
+                    font-size: 0.8em;
+                }
+                </style>
+            """, unsafe_allow_html=True)
             
+            # Option 1: Load from local file
+            st.markdown("#### Option 1: Load Local Design Parameters")
+            try:
+                if st.button("Load Latest Design Parameters", key="load_local", type="primary"):
+                    if os.path.exists("design_parameters.csv"):
+                        df = pd.read_csv("design_parameters.csv")
+                        st.success("Local design parameters loaded successfully!")
+                        with st.expander("View Local Parameters", expanded=True):
+                            # Fancy parameter details section
+                            st.markdown('<div class="param-container">', unsafe_allow_html=True)
+                            st.markdown('<p class="param-header">📊 Parameter Details</p>', unsafe_allow_html=True)
+                            
+                            # Create a styled dataframe
+                            styled_df = df.style.format({
+                                'site_length': '{:.1f}',
+                                'site_width': '{:.1f}',
+                                'total_height': '{:.1f}',
+                                'total_area': '{:,.0f}',
+                                'approx_spaces': '{:.0f}'
+                            }).set_properties(**{
+                                'font-size': '0.85em',
+                                'font-family': 'monospace'
+                            })
+                            
+                            st.dataframe(styled_df, height=120)
+                            st.markdown('</div>', unsafe_allow_html=True)
+                            
+                            # Key Parameters Summary with smaller text
+                            st.markdown('<div class="param-container">', unsafe_allow_html=True)
+                            st.markdown('<p class="param-header">🎯 Key Parameters Summary</p>', unsafe_allow_html=True)
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.markdown('<p class="param-header">📏 Dimensions</p>', unsafe_allow_html=True)
+                                with st.container():
+                                    st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+                                    st.metric("Site Length", f"{df['site_length'].iloc[0]:.1f} ft")
+                                    st.metric("Site Width", f"{df['site_width'].iloc[0]:.1f} ft")
+                                    st.metric("Number of Levels", f"{df['num_levels'].iloc[0]}")
+                                    st.markdown('</div>', unsafe_allow_html=True)
+                            
+                            with col2:
+                                st.markdown('<p class="param-header">📊 Calculations</p>', unsafe_allow_html=True)
+                                with st.container():
+                                    st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+                                    st.metric("Total Height", f"{df['total_height'].iloc[0]:.1f} ft")
+                                    st.metric("Total Area", f"{df['total_area'].iloc[0]:,.0f} sq ft")
+                                    st.metric("Approx. Spaces", f"{df['approx_spaces'].iloc[0]:.0f}")
+                                    st.markdown('</div>', unsafe_allow_html=True)
+                            
+                            st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        # Store parameters in session state
+                        for column in df.columns:
+                            st.session_state[f'param_{column}'] = df[column].iloc[0]
+                    else:
+                        st.warning("No local design parameters file found. Please generate parameters in the Conceptual Design tab first.")
+            except Exception as e:
+                st.error(f"Error loading local file: {str(e)}")
+            
+            # Option 2: Upload file (use the same styling)
+            st.markdown("#### Option 2: Upload Parameters File")
+            uploaded_file = st.file_uploader("Upload design parameters CSV", type=['csv'], key="csv_upload")
+            
+            if uploaded_file is not None:
+                try:
+                    df = pd.read_csv(uploaded_file)
+                    
+                    st.success("Design parameters loaded successfully!")
+                    with st.expander("View Uploaded Parameters", expanded=True):
+                        # Use the same fancy styling as above
+                        st.markdown('<div class="param-container">', unsafe_allow_html=True)
+                        st.markdown('<p class="param-header">📊 Parameter Details</p>', unsafe_allow_html=True)
+                        
+                        styled_df = df.style.format({
+                            'site_length': '{:.1f}',
+                            'site_width': '{:.1f}',
+                            'total_height': '{:.1f}',
+                            'total_area': '{:,.0f}',
+                            'approx_spaces': '{:.0f}'
+                        }).set_properties(**{
+                            'font-size': '0.85em',
+                            'font-family': 'monospace'
+                        })
+                        
+                        st.dataframe(styled_df, height=120)
+                        st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        # Key Parameters Summary
+                        st.markdown('<div class="param-container">', unsafe_allow_html=True)
+                        st.markdown('<p class="param-header">🎯 Key Parameters Summary</p>', unsafe_allow_html=True)
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown('<p class="param-header">📏 Dimensions</p>', unsafe_allow_html=True)
+                            with st.container():
+                                st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+                                st.metric("Site Length", f"{df['site_length'].iloc[0]:.1f} ft")
+                                st.metric("Site Width", f"{df['site_width'].iloc[0]:.1f} ft")
+                                st.metric("Number of Levels", f"{df['num_levels'].iloc[0]}")
+                                st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        with col2:
+                            st.markdown('<p class="param-header">📊 Calculations</p>', unsafe_allow_html=True)
+                            with st.container():
+                                st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+                                st.metric("Total Height", f"{df['total_height'].iloc[0]:.1f} ft")
+                                st.metric("Total Area", f"{df['total_area'].iloc[0]:,.0f} sq ft")
+                                st.metric("Approx. Spaces", f"{df['approx_spaces'].iloc[0]:.0f}")
+                                st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Store parameters in session state
+                    for column in df.columns:
+                        st.session_state[f'param_{column}'] = df[column].iloc[0]
+                
+                except Exception as e:
+                    st.error(f"Error loading CSV file: {str(e)}")
+
+            # ShapeDiver viewer implementation following official documentation
+            ticket = "ec17d00663f923ef03a8fc938cff333ad5101843f0b971a6068bc93faaf04b8f87a65af5e07675c2b6fb7ed75f749e8a1313cbc865a37846d39238739f0688eaea32d860f005f82ef635ed1a4526abcf87757667ac3077aa245be99b1cc1f21e5109b89138f42b-65c939a872a7798562baa8fe9487e517"
+            model_view_url = "https://sdr7euc1.eu-central-1.shapediver.com"
+            
+            html_content = f"""
+                <!DOCTYPE html>
+                <div id="viewer_container">
+                    <iframe
+                        src="{model_view_url}/v3/viewer/{ticket}"
+                        id="sdv_iframe"
+                        width="100%"
+                        height="600"
+                        style="border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"
+                        allow="accelerometer; camera; gyroscope; microphone; xr-spatial-tracking"
+                        allowfullscreen
+                        webkitallowfullscreen
+                        mozallowfullscreen
+                    ></iframe>
+                </div>
+                <script>
+                    window.addEventListener('message', function(event) {{
+                        if (event.data === 'viewer_loaded') {{
+                            console.log('ShapeDiver Viewer loaded successfully');
+                        }}
+                    }});
+                </script>
+            """
+            
+            # Use components.html to render the iframe
+            st.components.v1.html(html_content, height=620)
+            
+            # Add helpful instructions below the viewer
             st.info("""
-            👆 Interact with the 3D model above to:
-            - Adjust building parameters
-            - Visualize different configurations
-            - Export design options
+            👆 Use the 3D model viewer above to:
+            - Rotate and zoom the model using your mouse
+            - Adjust parameters using the control panel
+            - View different design configurations
+            - Analyze spatial relationships
             """)
             
+            # Navigation buttons
             st.markdown("---")
             col1, col2, col3 = st.columns([1,2,1])
             with col2:
