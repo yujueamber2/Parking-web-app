@@ -678,36 +678,23 @@ def main():
                     st.error(f"Error loading CSV file: {str(e)}")
 
             # ShapeDiver viewer implementation following official documentation
-            ticket = "ec17d00663f923ef03a8fc938cff333ad5101843f0b971a6068bc93faaf04b8f87a65af5e07675c2b6fb7ed75f749e8a1313cbc865a37846d39238739f0688eaea32d860f005f82ef635ed1a4526abcf87757667ac3077aa245be99b1cc1f21e5109b89138f42b-65c939a872a7798562baa8fe9487e517"
-            model_view_url = "https://sdr7euc1.eu-central-1.shapediver.com"
+            #ticket = "ec17d00663f923ef03a8fc938cff333ad5101843f0b971a6068bc93faaf04b8f87a65af5e07675c2b6fb7ed75f749e8a1313cbc865a37846d39238739f0688eaea32d860f005f82ef635ed1a4526abcf87757667ac3077aa245be99b1cc1f21e5109b89138f42b-65c939a872a7798562baa8fe9487e517"
+            #model_view_url = "https://sdr7euc1.eu-central-1.shapediver.com"
+ 
             
-            html_content = f"""
-                <!DOCTYPE html>
-                <div id="viewer_container">
-                    <iframe
-                        src="{model_view_url}/v3/viewer/{ticket}"
-                        id="sdv_iframe"
-                        width="100%"
-                        height="600"
-                        style="border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"
-                        allow="accelerometer; camera; gyroscope; microphone; xr-spatial-tracking"
-                        allowfullscreen
-                        webkitallowfullscreen
-                        mozallowfullscreen
-                    ></iframe>
+            iframe_src = "https://appbuilder.shapediver.com/v1/main/latest/?slug=parking-structure-generator-v-1-0-21"
+            #st.components.v1.html(html_content, height=620)
+
+            st.components.v1.html(
+                f'''
+                <div style="position: relative; width: 100%; padding-bottom: 56.25%;">
+                    <iframe src="{iframe_src}" style="position: absolute; width: 100%; height: 100%; border: 0;" allowfullscreen></iframe>
                 </div>
-                <script>
-                    window.addEventListener('message', function(event) {{
-                        if (event.data === 'viewer_loaded') {{
-                            console.log('ShapeDiver Viewer loaded successfully');
-                        }}
-                    }});
-                </script>
-            """
-            
-            # Use components.html to render the iframe
-            st.components.v1.html(html_content, height=620)
-            
+                '''
+            )
+
+
+
             # Add helpful instructions below the viewer
             st.info("""
             👆 Use the 3D model viewer above to:
